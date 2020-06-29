@@ -96,6 +96,12 @@ class DBProvider {
     var res = await  db.query("papeis", where: "c_papel = ?", whereArgs: [papel]);
     return res.isNotEmpty ? Papel.fromMap(res.first) : Null;
   }
+  
+  findCreatedAt(String papel, String createdAt) async {
+    final db = await database;
+    var res = await  db.query("papeis", where: "c_papel = ? and created_at = ?", whereArgs: [papel, createdAt]);
+    return res.isNotEmpty ? Papel.fromMap(res.first) : Null;
+  }
 
   Future<List<Papel>> all() async {
     final db = await database;

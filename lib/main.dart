@@ -1,6 +1,10 @@
+import 'dart:convert';
+
 import 'package:crawler_flutter/data/database.dart';
 import 'package:crawler_flutter/data/papel.dart';
+import 'package:crawler_flutter/scraper/papel_scraper.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 void main() => runApp(MyApp());
 
@@ -37,7 +41,9 @@ class _MyHomePageState extends State<MyHomePage> {
               itemBuilder: (BuildContext context, int index) {
                 Papel item = snapshot.data[index];
                 return ListTile(
+                  leading: Text(item.cPvp.toString()),
                   title: Text(item.cPapel),
+                  subtitle: Text(item.cEmpresa),
                   trailing: Text(item.cCotacao.toString()),
                 );
               }
@@ -48,16 +54,28 @@ class _MyHomePageState extends State<MyHomePage> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        child: Icon(Icons.add),
+        child: Icon(Icons.refresh),
         onPressed: () async {
-          var exist = await DBProvider.db.find('VVAR3');
-          if (exist == Null) {
-            Papel vvar3 = await DBProvider.db.vvar3();
-            await DBProvider.db.insert(vvar3);
-          } else {
-            await DBProvider.db.delete(exist.cPapel);
+
+          var carteira = await rootBundle.loadString('assets/data/carteira.json');
+          var papelScraper = new PapelScraper();
+          for (var item in jsonDecode(carteira)) {
+            String cPapel = item['papel'];
+            String createdAt = (new DateTime.now()).toIso8601String().substring(0, 10);
+            print(cPapel);
+            var cache = await DBProvider.db.findCreatedAt(cPapel, createdAt);
+            if (cache == Null) {
+              Papel papel = await papelScraper.get(cPapel);
+              var exist = await DBProvider.db.find(cPapel);
+              if (exist != Null) {
+                await DBProvider.db.update(papel);
+              } else {
+                await DBProvider.db.insert(papel);
+              }
+              setState(() {});
+            }
           }
-          setState(() {});
+
         }
       )
     );
